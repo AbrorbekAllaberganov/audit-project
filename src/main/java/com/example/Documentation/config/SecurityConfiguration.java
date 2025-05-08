@@ -2,6 +2,7 @@ package com.example.Documentation.config;
 
 import com.example.Documentation.jwtSecurity.JwtAuthenticationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.servlet.Filter;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,10 +49,10 @@ public class SecurityConfiguration {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/**",
                                 "/api/auth/**",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/**"
                         ).permitAll()
                         .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
@@ -78,7 +79,7 @@ public class SecurityConfiguration {
         configuration.setAllowedOriginPatterns(List.of("*")); // Allows all origins
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true); // Allow cookies / auth headers
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
@@ -86,22 +87,6 @@ public class SecurityConfiguration {
         source.registerCorsConfiguration("/swagger-ui/index.html", configuration); // Explicitly for swagger-ui.html
         source.registerCorsConfiguration("/v3/api-docs/**", configuration); // API docs
         return source;
-    }
-
-    @Bean
-    @Primary
-    public ObjectMapper objectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        return mapper;
-    }
-
-
-
-    @Bean
-    public RestTemplate restTemplate(){
-        log.info("rest template bean created !!!");
-        return new RestTemplate();
     }
 
 

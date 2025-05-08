@@ -29,7 +29,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest){
         ApiResponse response = authenticationService.register(registerRequest);
-        return ResponseEntity.status(response.isSuccess()?200:409).body(response);
+        return ResponseEntity.status(response.isSuccess()?200:400).body(response);
     }
 
 

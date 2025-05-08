@@ -17,7 +17,7 @@ public class DocumentController {
     @PostMapping
     public ResponseEntity<ApiResponse> saveDocument(@RequestBody DocumentDto documentDto) {
         ApiResponse response = documentService.saveDocument(documentDto);
-        return ResponseEntity.status(response.isSuccess() ? 200 : 409).body(response);
+        return ResponseEntity.status(response.isSuccess() ? 200 : 400).body(response);
     }
 
     @GetMapping
@@ -27,13 +27,19 @@ public class DocumentController {
                                                     @RequestParam(required = false) String toDate
     ) {
         ApiResponse response = documentService.getAllDocuments(fromDate, toDate, page, size);
-        return ResponseEntity.status(response.isSuccess() ? 200 : 409).body(response);
+        return ResponseEntity.status(response.isSuccess() ? 200 : 400).body(response);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse> getDocumentById(@PathVariable Long id) {
+        ApiResponse response = documentService.getDocumentById(id);
+        return ResponseEntity.status(response.isSuccess() ? 200 : 400).body(response);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse> updateDocument(@PathVariable Long id, @RequestBody DocumentDto documentDto) {
         ApiResponse response = documentService.updateDocument(id,documentDto);
-        return ResponseEntity.status(response.isSuccess() ? 200 : 409).body(response);
+        return ResponseEntity.status(response.isSuccess() ? 200 : 400).body(response);
     }
 
     @GetMapping("/file")
@@ -41,6 +47,6 @@ public class DocumentController {
                                                         @RequestParam(required = false) String toDate
     ) {
         ApiResponse response = documentService.getFileOfDocuments(fromDate, toDate);
-        return ResponseEntity.status(response.isSuccess() ? 200 : 409).body(response);
+        return ResponseEntity.status(response.isSuccess() ? 200 : 400).body(response);
     }
 }

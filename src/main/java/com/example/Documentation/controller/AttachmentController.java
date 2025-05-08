@@ -19,7 +19,7 @@ public class AttachmentController {
     @PostMapping(value = "/save", consumes = "multipart/form-data")
     public ResponseEntity<?> saveFile(@RequestParam(name = "file") MultipartFile multipartFile) {
         ApiResponse response=attachmentService.saveAttachment(multipartFile);
-        return ResponseEntity.status(response.isSuccess()?201:409).body(response);
+        return ResponseEntity.status(response.isSuccess()?201:400).body(response);
     }
 
     @Operation(summary = "download a file", description = "download a file from the server by hashID")

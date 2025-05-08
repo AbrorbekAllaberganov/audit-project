@@ -9,6 +9,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Getter
@@ -40,7 +41,7 @@ public class Document extends AuditableEntity{
     BigDecimal profitInPercentage;
     String productName;
     String phoneNumber;
-    LocalDate date;
+    LocalDateTime date;
 
     @OneToOne
     Attachment contractAttachment;

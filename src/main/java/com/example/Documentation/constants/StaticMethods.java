@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Optional;
@@ -21,23 +22,17 @@ import java.util.Optional;
 public class StaticMethods {
 
 
-    public static LocalDate stringToLocalDate(String dateString) {
+    public static LocalDateTime stringToLocalDateTime(String dateString) {
         try {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            return LocalDate.parse(dateString, formatter);
+            String dateTimeString = dateString + "T00:00:00";
+            DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+            return LocalDateTime.parse(dateTimeString, formatter);
         } catch (Exception e) {
+            e.printStackTrace();
             return null;
         }
     }
 
-    public static Optional<Date> stringToDate(String dateString) {
-        try {
-            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-            return Optional.of(formatter.parse(dateString));
-        } catch (ParseException e) {
-            return Optional.empty();
-        }
-    }
 
     public static Optional<java.sql.Date> stringToSqlDate(String dateString) {
         try {

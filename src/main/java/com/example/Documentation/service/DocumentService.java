@@ -19,6 +19,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreRemove;
 import jakarta.persistence.PreUpdate;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
@@ -39,6 +40,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DocumentService {
     private final DocumentRepository documentRepository;
     private final AttachmentRepository attachmentRepository;
@@ -47,62 +49,28 @@ public class DocumentService {
     public ApiResponse saveDocument(DocumentDto documentDto) {
         Document document = new Document();
 
-        document.setCompanyName(documentDto.getCompanyName());
-        document.setCostOfContract(documentDto.getCostOfContract());
-        document.setIsMoneyTransferred(documentDto.getIsMoneyTransferred());
-        document.setIsMoneySent(documentDto.getIsMoneySent());
-        document.setIsMoneyAccepted(documentDto.getIsMoneyAccepted());
-
-        document.setCostInUSD(documentDto.getCostInUSD());
-
-        LocalDate date = StaticMethods.stringToLocalDate(documentDto.getDate());
-
-        if (date == null)
-            return new ApiResponse("wrong date format", false);
-
-        document.setDate(date);
-
-        Optional<BigDecimal> currencyOptional = StaticMethods.getCurrencyByDate(documentDto.getDate());
-        if (currencyOptional.isEmpty())
-            return new ApiResponse("currency not found", false);
-
-        BigDecimal currency = currencyOptional.get();
-        if (documentDto.getCostInUSD() != null) {
-            document.setCostInUZS(documentDto.getCostInUSD().multiply(currency));
-            document.setExchangingRate(currency);
-        }
-
-        document.setTax(documentDto.getTax());
-        document.setSummaAfterBankService(documentDto.getSummaAfterBankService());
-        document.setAdditionalExpenseInPercentage(documentDto.getAdditionalExpenseInPercentage());
-        document.setMoneyAfterExpenses(documentDto.getMoneyAfterExpenses());
-        document.setLatNumber(documentDto.getLatNumber());
-        document.setTransportExpenses(documentDto.getTransportExpenses());
-        document.setProfit(documentDto.getProfit());
-        document.setProfitInPercentage(documentDto.getProfitInPercentage());
-        document.setProductName(documentDto.getProductName());
-        document.setPhoneNumber(documentDto.getPhoneNumber());
-
-        if (documentDto.getHashIdOfContract() != null) {
-            Optional<Attachment> attachmentOfContractOptional = attachmentRepository.findByHashId(documentDto.getHashIdOfContract());
-            if (attachmentOfContractOptional.isEmpty())
-                return new ApiResponse("contract file not found", false);
-            document.setContractAttachment(attachmentOfContractOptional.get());
-        }
-
-        if (documentDto.getHashIdOfInvoice() != null) {
-            Optional<Attachment> attachmentOfInvoiceController = attachmentRepository.findByHashId(documentDto.getHashIdOfInvoice());
-            if (attachmentOfInvoiceController.isEmpty())
-                return new ApiResponse("invoice file not found", false);
-
-            document.setInvoiceAttachment(attachmentOfInvoiceController.get());
-        }
+        mapDtoToDocument(documentDto, document);
 
         documentRepository.save(document);
-
         auditInsert(document);
 
-        return new ApiResponse("document saved", true, document);
+        return new ApiResponse("Document saved", true, document);
+    }
+
+    public ApiResponse updateDocument(Long id, DocumentDto documentDto) {
+        Optional<Document> documentOptional = documentRepository.findById(id);
+        if (documentOptional.isEmpty())
+            return new ApiResponse("Document not found", false);
+
+        Document document = documentOptional.get();
+        Document original = (Document) deepCopy(document);
+
+        mapDtoToDocument(documentDto, document);
+
+        documentRepository.save(document);
+        auditUpdate(original, document);
+
+        return new ApiResponse("Document updated", true);
     }
 
     public ApiResponse getAllDocuments(String fromDateString, String toDateString, int page, int size) {
@@ -153,70 +121,7 @@ public class DocumentService {
         return new ApiResponse("documents", true, generateBase64(documents));
     }
 
-    public ApiResponse updateDocument(Long id, DocumentDto documentDto) {
-        Optional<Document> documentOptional = documentRepository.findById(id);
-        if (documentOptional.isEmpty())
-            return new ApiResponse("document not found", false);
-        Document document = documentOptional.get();
-        Document original = (Document) deepCopy(document);
 
-        document.setCompanyName(documentDto.getCompanyName());
-        document.setCostOfContract(documentDto.getCostOfContract());
-        document.setIsMoneyTransferred(documentDto.getIsMoneyTransferred());
-        document.setIsMoneySent(documentDto.getIsMoneySent());
-        document.setIsMoneyAccepted(documentDto.getIsMoneyAccepted());
-
-        document.setCostInUSD(documentDto.getCostInUSD());
-
-        LocalDate date = StaticMethods.stringToLocalDate(documentDto.getDate());
-
-        if (date == null)
-            return new ApiResponse("wrong date format", false);
-
-        document.setDate(date);
-
-        Optional<BigDecimal> currencyOptional = StaticMethods.getCurrencyByDate(documentDto.getDate());
-        if (currencyOptional.isEmpty())
-            return new ApiResponse("currency not found", false);
-
-
-        BigDecimal currency = currencyOptional.get();
-        if (documentDto.getCostInUSD() != null) {
-            document.setCostInUZS(documentDto.getCostInUSD().multiply(currency));
-            document.setExchangingRate(currency);
-        }
-
-        document.setTax(documentDto.getTax());
-        document.setSummaAfterBankService(documentDto.getSummaAfterBankService());
-        document.setAdditionalExpenseInPercentage(documentDto.getAdditionalExpenseInPercentage());
-        document.setMoneyAfterExpenses(documentDto.getMoneyAfterExpenses());
-        document.setLatNumber(documentDto.getLatNumber());
-        document.setTransportExpenses(documentDto.getTransportExpenses());
-        document.setProfit(documentDto.getProfit());
-        document.setProfitInPercentage(documentDto.getProfitInPercentage());
-        document.setProductName(documentDto.getProductName());
-        document.setPhoneNumber(documentDto.getPhoneNumber());
-
-        if (documentDto.getHashIdOfContract() != null) {
-            Optional<Attachment> attachmentOfContractOptional = attachmentRepository.findByHashId(documentDto.getHashIdOfContract());
-            if (attachmentOfContractOptional.isEmpty())
-                return new ApiResponse("contract file not found", false);
-            document.setContractAttachment(attachmentOfContractOptional.get());
-        }
-
-        if (documentDto.getHashIdOfInvoice() != null) {
-            Optional<Attachment> attachmentOfInvoiceController = attachmentRepository.findByHashId(documentDto.getHashIdOfInvoice());
-            if (attachmentOfInvoiceController.isEmpty())
-                return new ApiResponse("invoice file not found", false);
-
-            document.setInvoiceAttachment(attachmentOfInvoiceController.get());
-        }
-        documentRepository.save(document);
-
-        auditUpdate(original, document);
-
-        return new ApiResponse("document updated", true);
-    }
 
     public String generateBase64(List<Document> documentList) {
         try (Workbook workbook = new XSSFWorkbook();
@@ -457,47 +362,43 @@ public class DocumentService {
 
     @PreUpdate
     public void auditUpdate(Document doc, Document updated) {
-        System.out.println("update doc");
-        Map<String, Object[]> diffs = getDifferences(updated, doc);
+        Map<String, Object[]> diffs = new LinkedHashMap<>();
+        extractFields(doc, updated, diffs);
         saveAudit(doc.getId(), getUsername(), "UPDATE", diffs);
     }
 
-    @PreRemove
-    public void auditDelete(Document doc) {
-        Map<String, Object[]> diff = new LinkedHashMap<>();
-        extractFields(doc, null, diff);
-        saveAudit(doc.getId(), getUsername(), "DELETE", diff);
-    }
 
-    private void extractFields(Object oldObj, Object newObj, Map<String, Object[]> diff) {
-        Object target = oldObj != null ? oldObj : newObj;
+    private void extractFields(Document oldDocument, Document newDocument, Map<String, Object[]> diff) {
+        Object target = oldDocument != null ? oldDocument : newDocument;
         for (Field field : target.getClass().getDeclaredFields()) {
             field.setAccessible(true);
             try {
-                Object oldVal = oldObj != null ? field.get(oldObj) : null;
-                Object newVal = newObj != null ? field.get(newObj) : null;
-                diff.put(field.getName(), new Object[]{oldVal, newVal});
-            } catch (IllegalAccessException ignored) {
-            }
-        }
-    }
+                Object oldVal = oldDocument != null ? field.get(oldDocument) : null;
+                Object newVal = newDocument != null ? field.get(newDocument) : null;
 
+                Class<?> type = field.getType();
 
-    private Map<String, Object[]> getDifferences(Document oldObj, Document newObj) {
-        Map<String, Object[]> changes = new LinkedHashMap<>();
-        for (Field field : oldObj.getClass().getDeclaredFields()) {
-            field.setAccessible(true);
-            try {
-                Object oldVal = field.get(oldObj);
-                Object newVal = field.get(newObj);
-                if (!Objects.equals(oldVal, newVal)) {
-                    changes.put(field.getName(), new Object[]{oldVal, newVal});
+                boolean isDifferent = false;
+
+                if (type == BigDecimal.class) {
+                    isDifferent = oldVal == null && newVal != null ||
+                            oldVal != null && newVal == null ||
+                            oldVal != null && ((BigDecimal) oldVal).compareTo((BigDecimal) newVal) != 0;
+                } else if (type == Attachment.class) {
+                    isDifferent = !Objects.equals(oldVal, newVal);
+                } else if (type != LocalDateTime.class){
+                    isDifferent = !Objects.equals(oldVal, newVal);
                 }
-            } catch (IllegalAccessException ignored) {
+
+                if (isDifferent) {
+                    diff.put(field.getName(), new Object[]{oldVal, newVal});
+                }
+            } catch (IllegalAccessException ex) {
+                log.error(ex.getMessage());
             }
         }
-        return changes;
     }
+
 
     private String getUsername() {
         return SecurityContextHolder.getContext().getAuthentication().getName();
@@ -510,10 +411,8 @@ public class DocumentService {
         log.setTimestamp(LocalDateTime.now());
         log.setOperation(operation);
 
-
         try {
             String changes = new ObjectMapper().writeValueAsString(diffs);
-            System.out.println(changes);
             log.setChangesJson(changes);
         } catch (JsonProcessingException e) {
             log.setChangesJson("{\"error\": \"Could not serialize changes\"}");
@@ -530,4 +429,65 @@ public class DocumentService {
     }
 
 
+    public ApiResponse getDocumentById(Long id) {
+        Optional<Document> documentOptional = documentRepository.findById(id);
+        return documentOptional.map(document -> new ApiResponse("document", true, document))
+                .orElseGet(() -> new ApiResponse("document not found", false));
+    }
+
+    private void mapDtoToDocument(DocumentDto documentDto, Document document) {
+        document.setCompanyName(documentDto.getCompanyName());
+        document.setCostOfContract(documentDto.getCostOfContract());
+        document.setIsMoneyTransferred(documentDto.getIsMoneyTransferred());
+        document.setIsMoneySent(documentDto.getIsMoneySent());
+        document.setIsMoneyAccepted(documentDto.getIsMoneyAccepted());
+        document.setCostInUSD(documentDto.getCostInUSD());
+
+        LocalDateTime date = StaticMethods.stringToLocalDateTime(documentDto.getDate());
+        if (date == null) {
+            throw new IllegalArgumentException("Invalid date format");
+        }
+        document.setDate(date);
+
+        Optional<BigDecimal> currencyOptional = StaticMethods.getCurrencyByDate(documentDto.getDate());
+        if (currencyOptional.isEmpty()) {
+            throw new IllegalArgumentException("Currency not found for the provided date");
+        }
+        BigDecimal currency = currencyOptional.get();
+        if (documentDto.getCostInUSD() != null) {
+            document.setCostInUZS(documentDto.getCostInUSD().multiply(currency));
+            document.setExchangingRate(currency);
+        }
+
+        document.setTax(documentDto.getTax());
+        document.setSummaAfterBankService(documentDto.getSummaAfterBankService());
+        document.setAdditionalExpenseInPercentage(documentDto.getAdditionalExpenseInPercentage());
+        document.setMoneyAfterExpenses(documentDto.getMoneyAfterExpenses());
+        document.setLatNumber(documentDto.getLatNumber());
+        document.setTransportExpenses(documentDto.getTransportExpenses());
+        document.setProfit(documentDto.getProfit());
+        document.setProfitInPercentage(documentDto.getProfitInPercentage());
+        document.setProductName(documentDto.getProductName());
+        document.setPhoneNumber(documentDto.getPhoneNumber());
+
+        if (documentDto.getHashIdOfContract() != null) {
+            Optional<Attachment> attachmentOfContractOptional = attachmentRepository.findByHashId(documentDto.getHashIdOfContract());
+            attachmentOfContractOptional.ifPresentOrElse(
+                    document::setContractAttachment,
+                    () -> {
+                        throw new IllegalArgumentException("Contract file not found");
+                    }
+            );
+        }
+
+        if (documentDto.getHashIdOfInvoice() != null) {
+            Optional<Attachment> attachmentOfInvoiceOptional = attachmentRepository.findByHashId(documentDto.getHashIdOfInvoice());
+            attachmentOfInvoiceOptional.ifPresentOrElse(
+                    document::setInvoiceAttachment,
+                    () -> {
+                        throw new IllegalArgumentException("Invoice file not found");
+                    }
+            );
+        }
+    }
 }
