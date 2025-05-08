@@ -36,7 +36,7 @@ The project uses the following technologies:
 To clone the repository, run:
 
 ```bash
-git clone https://github.com/AbrorbekAllaberganov/documentation.git
+git clone https://github.com/AbrorbekAllaberganov/audit-project.git
 cd audit-project
 ```
 
